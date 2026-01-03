@@ -1,3 +1,4 @@
+mod error;
 mod state;
 
 use anchor_lang::prelude::*;
