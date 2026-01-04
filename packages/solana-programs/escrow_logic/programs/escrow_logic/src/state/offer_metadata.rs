@@ -9,16 +9,15 @@ use anchor_lang::prelude::*;
 /// Represents an escrow offer for storing the assets.
 #[account]
 #[derive(InitSpace)]
-pub struct Offer {
+pub struct OfferMetadata {
     /// Unique identifier for this offer.
-    /// Used in PDA derivation and offer lookup.
     pub id: u64,
 
     /// The public key of the account who created this offer.
     pub maker: Pubkey,
 
     // TODO! - store the metadata about the cryptocurrency/asset being stored in the vault [SOL, ETH, BTC]
-
+    
     /// The amount of asset being locked.
     pub amount: u64,
 
