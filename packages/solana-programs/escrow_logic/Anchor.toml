@@ -5,15 +5,15 @@ package_manager = "yarn"
 resolution = true
 skip-lint = false
 
-[programs.localnet]
-escrow_logic = "NVzrbNACFEb8c2osL7L1LNEBjRXJNxGjrbJHtkVa8LL"
+[programs.devnet]
+escrow_logic = "3qxEyNRMxg4JNRhu8o8DymaBeHJf2QvQgiE52tLnJs4u"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""
+test = "yarn run regenerate-client; npx tsx tests/escrow_logic.test.ts"
