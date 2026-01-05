@@ -2,9 +2,10 @@
 //!
 //! This module implements the logic for creating new escrow offers.
 
-use anchor_lang::{prelude::*, system_program};
+use anchor_lang::prelude::*;
 
 use crate::error::ErrorCode;
+use crate::handlers::shared_utils::transfer_asset;
 use crate::state::offer_metadata::OfferMetadata;
 use crate::state::vault::VaultAccount;
 
@@ -43,8 +44,8 @@ pub struct MakeNewOffer<'info> {
     pub vault: Account<'info, VaultAccount>,
 }
 
-/// Function to initialize the vault
-/// 
+/// Function to initialize the vault.
+///
 /// # Arguments
 ///
 /// * `ctx` - Provides non-argument inputs to the program
@@ -54,22 +55,24 @@ pub fn initialize_vault(ctx: Context<MakeNewOffer>, amount: u64, id: u64) -> Res
     // Sanity check
     require!(amount > 0, ErrorCode::InvalidAmount);
 
-    let cpi_context = CpiContext::new(
-        ctx.accounts.system_program.to_account_info(),
-        system_program::Transfer {
-            from: ctx.accounts.maker_account.to_account_info(),
-            to: ctx.accounts.vault.to_account_info(),
-        },
-    );
-
-    // Perform the transfer with the defined context
-    system_program::transfer(cpi_context, amount)
-        .map_err(|_| ErrorCode::InsufficientMakerBalance)?;
+    transfer_asset(
+        &ctx.accounts.maker_account,
+        &ctx.accounts.vault.to_account_info(),
+        amount,
+        None,
+        &ctx.accounts.system_program,
+    )
+    .map_err(|_| ErrorCode::InsufficientMakerBalance)?;
 
     // Store the metadata in the PDA
-    ctx.accounts.offer_metadata_data_account.set_inner(
-        OfferMetadata { id, maker: *ctx.accounts.maker_account.key, amount, bump: ctx.bumps.offer_metadata_data_account }
-    );
+    ctx.accounts
+        .offer_metadata_data_account
+        .set_inner(OfferMetadata {
+            id,
+            maker: *ctx.accounts.maker_account.key,
+            amount,
+            bump: ctx.bumps.offer_metadata_data_account,
+        });
 
     Ok(())
 }

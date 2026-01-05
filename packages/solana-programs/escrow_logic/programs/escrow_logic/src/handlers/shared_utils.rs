@@ -1,49 +1,53 @@
-// //! # Shared Utilities
-// //!
-// //! This module contains common utility functions used across multiple
-// //! instruction handlers. These functions encapsulate token operations
-// //! and account management logic.
+//! # Shared Utilities
+//!
+//! This module contains common utility functions used across multiple
+//! instruction handlers.
 
-// use anchor_lang::prelude::*;
+use crate::error::ErrorCode;
 
-// /// Closes a token account and sends the rent to the specified destination account.
-// ///
-// /// This function closes an empty token account and recovers the rent lamports.
-// /// If the token account is owned by a PDA, the `owning_pda_seeds` parameter
-// /// must be provided to enable PDA signing.
-// ///
-// /// # Arguments
-// ///
-// /// * `token_account` - The token account to close
-// /// * `destination` - Account to receive the recovered rent
-// /// * `authority` - Account that has authority to close the token account
-// /// * `token_program` - Token program interface
-// /// * `owning_pda_seeds` - Optional PDA seeds if authority is a PDA
-// ///
-// /// # Requirements
-// ///
-// /// The token account must be empty (balance = 0) before it can be closed.
-// pub fn close_token_account<'info>(
-//     token_account: &InterfaceAccount<'info, TokenAccount>,
-//     destination: &AccountInfo<'info>,
-//     authority: &AccountInfo<'info>,
-//     token_program: &Interface<'info, TokenInterface>,
-//     owning_pda_seeds: Option<&[&[u8]]>,
-// ) -> Result<()> {
-//     // Set up close account instruction accounts
-//     let close_accounts = CloseAccount {
-//         account: token_account.to_account_info(),
-//         destination: destination.to_account_info(),
-//         authority: authority.to_account_info(),
-//     };
+use anchor_lang::{prelude::*, system_program};
 
-//     // Prepare signer seeds for PDA signing (if needed)
-//     let signers_seeds = owning_pda_seeds.map(|seeds| [seeds]);
+/// Transfers asset between accounts.
+///
+/// For regular signer accounts, uses CPI to the System Program.
+/// For PDA sources, directly modifies lamport balances.
+///
+/// # Arguments
+///
+/// * `source` - The account to transfer asset from
+/// * `destination` - The account to transfer asset to
+/// * `amount` - Amount of lamports to transfer
+/// * `owning_pda_seeds` - Optional PDA seeds if source is a PDA
+/// * `program` - The System Program
+pub fn transfer_asset<'info>(
+    source: &AccountInfo<'info>,
+    destination: &AccountInfo<'info>,
+    amount: u64,
+    owning_pda_seeds: Option<&[&[u8]]>,
+    program: &Program<'info, System>,
+) -> Result<()> {
+    match owning_pda_seeds {
+        Some(_seeds) => {
+            // For PDA transfers, directly modify lamport balances.
+            **source.try_borrow_mut_lamports()? -= amount;
+            **destination.try_borrow_mut_lamports()? += amount;
 
-//     // Execute close account via CPI, using PDA signer if required
-//     close_account(if let Some(seeds_arr) = signers_seeds.as_ref() {
-//         CpiContext::new_with_signer(token_program.to_account_info(), close_accounts, seeds_arr)
-//     } else {
-//         CpiContext::new(token_program.to_account_info(), close_accounts)
-//     })
-// }
+            Ok(())
+        }
+        None => {
+            // For regular signer accounts, use System Program CPI
+            let cpi_context = CpiContext::new(
+                program.to_account_info(),
+                system_program::Transfer {
+                    from: source.to_account_info(),
+                    to: destination.to_account_info(),
+                },
+            );
+
+            system_program::transfer(cpi_context, amount)
+                .map_err(|_| ErrorCode::InsufficientMakerBalance)?;
+
+            Ok(())
+        }
+    }
+}
