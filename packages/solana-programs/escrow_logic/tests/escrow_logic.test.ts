@@ -13,6 +13,7 @@ import { getMakeOfferInstruction } from "../clients/js/src/generated/instruction
 import { ESCROW_LOGIC_PROGRAM_ADDRESS } from "../clients/js/src/generated/programs/escrowLogic.js";
 import { describe, test, it } from "node:test";
 import assert from "node:assert";
+import { getRefundExistingOfferInstruction } from "../clients/js/src/generated/instructions/refundExistingOffer.js";
 
 describe("Escrow logic", async () => {
   /**
@@ -144,13 +145,16 @@ describe("Escrow logic", async () => {
      * Assert that the metadata has been created along with metadata
      */
     const offerMetadataAccount = await rpc
-    .getAccountInfo(offerMetadataPda)
-    .send();
+      .getAccountInfo(offerMetadataPda)
+      .send();
     assert.ok(
       offerMetadataAccount.value,
       "Offer metadata account should exist after transaction"
     );
-    assert.equal(offerMetadataAccount.value?.owner, ESCROW_LOGIC_PROGRAM_ADDRESS)
+    assert.equal(
+      offerMetadataAccount.value?.owner,
+      ESCROW_LOGIC_PROGRAM_ADDRESS
+    );
 
     /**
      * Assert that the vault has been created along with metadata
@@ -160,6 +164,105 @@ describe("Escrow logic", async () => {
       vaultAccount.value,
       "Vault account should exist after transaction"
     );
-    assert.equal(vaultAccount.value?.owner, ESCROW_LOGIC_PROGRAM_ADDRESS)
+    assert.equal(vaultAccount.value?.owner, ESCROW_LOGIC_PROGRAM_ADDRESS);
+  });
+
+  test("should refund the offer and close accounts", async () => {
+    /**
+     * Create a RefundOffer instruction
+     */
+    const refundOfferIx = getRefundExistingOfferInstruction({
+      makerAccount: signer,
+      offerMetadataDataAccount: offerMetadataPda,
+      vault: vaultPda,
+    });
+
+    /**
+     * Get the latest blockhash (aka transaction lifetime).
+     */
+    const { value: latestBlockhash } = await rpc.getLatestBlockhash().send();
+    console.log("latestBlockhash:", latestBlockhash);
+
+    /**
+     * Create a transaction to be sent to the blockchain
+     */
+    const transaction = createTransaction({
+      version: "legacy", // or `0` if using address lookup tables
+      feePayer: signer,
+      instructions: [refundOfferIx],
+      latestBlockhash,
+      // 5_000 ~ 9_000 CU utilized by Make Offer instruction + rough buffer
+      computeUnitLimit: 15000,
+      // TODO!: computeUnitPrice,
+    });
+    console.log("Transaction:");
+    console.log(transaction);
+
+    /**
+     * Simulate the transaction
+     */
+    const simulation = await simulateTransaction(transaction);
+    console.log("transaction simulation:");
+    console.log(simulation);
+
+    /**
+     * Sign the transaction with the provided `signer`
+     */
+    const signedTransaction =
+      await signTransactionMessageWithSigners(transaction);
+    console.log("signedTransaction:");
+    console.log(signedTransaction);
+
+    /**
+     * Get the transaction signature after it has been signed by the `feePayer`
+     */
+    const signature = getSignatureFromTransaction(signedTransaction);
+
+    /**
+     * Log the Solana Explorer link for the
+     */
+    console.log("Explorer Link:");
+    console.log(
+      getExplorerLink({
+        cluster,
+        transaction: signature,
+      })
+    );
+
+    try {
+      /**
+       * Actually send the transaction to the blockchain and confirm it
+       */
+      await sendAndConfirmTransaction(signedTransaction, {
+        commitment: "confirmed",
+        skipPreflight: true,
+        maxRetries: 10n,
+      });
+
+      console.log("Transaction confirmed!", signature);
+    } catch (err) {
+      console.error("Unable to send and confirm the transaction");
+      console.error(err);
+    }
+
+    /**
+     * Assert that the metadata account does not exist
+     */
+    const offerMetadataAccount = await rpc
+      .getAccountInfo(offerMetadataPda)
+      .send();
+    assert.ok(
+      !offerMetadataAccount.value,
+      "Offer metadata account should not exist after transaction"
+    );
+
+    /**
+     * Assert that the vault has been closed
+     */
+    const vaultAccount = await rpc.getAccountInfo(vaultPda).send();
+    assert.ok(
+      !vaultAccount.value,
+      "Vault account should not exist after transaction"
+    );
   });
 });
