@@ -77,11 +77,3 @@ User Interactions
 - Platform polls oracles for triggers (e.g., SOL >$200).
 
 ### **4. Priority:** High
-
-## Simplified user flow
-
-![Demo user flow](./Demo_user_flow.png)
-
-## High-level vision for the end goal of the platform that is - a canvas with a complete workflow
-
-![Practical View](./Pratical_view.png)
