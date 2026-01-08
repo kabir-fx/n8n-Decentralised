@@ -11,18 +11,15 @@ pub enum ErrorCode {
     #[msg("Insufficient balance in maker's account")]
     InsufficientMakerBalance,
 
+    #[msg("Incorrect destination account")]
+    IncorrectDestinationAccount,
+
     #[msg("Amount must be greater than zero")]
     InvalidAmount,
 
-    #[msg("Failed to withdraw assets from vault")]
-    FailedVaultWithdrawal,
-
-    #[msg("Failed to close vault account")]
-    FailedVaultClosure,
+    #[msg("Failed to transfer assets from vault")]
+    FailedVaultTransfer,
 
     #[msg("Failed to refund assets from vault")]
     FailedRefundTransfer,
-
-    #[msg("Failed to close vault during refund")]
-    FailedRefundClosure,
 }
