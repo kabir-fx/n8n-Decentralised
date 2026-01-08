@@ -44,21 +44,28 @@ pub struct MakeNewOffer<'info> {
     pub vault: Account<'info, VaultAccount>,
 }
 
-/// Function to initialize the vault.
+/// Function to initialize the vault.   
 ///
 /// # Arguments
 ///
 /// * `ctx` - Provides non-argument inputs to the program
 /// * `amount` - Amount to store in a vault
 /// * `id` - Unique identifier for this offer.
-pub fn initialize_vault(ctx: Context<MakeNewOffer>, amount: u64, id: u64) -> Result<()> {
+pub fn initialize_vault(
+    ctx: Context<MakeNewOffer>,
+    escrow_amount: u64,
+    target_price: u64,
+    id: u64,
+    destination_account: Pubkey,
+) -> Result<()> {
     // Sanity check
-    require!(amount > 0, ErrorCode::InvalidAmount);
+    require!(escrow_amount > 0, ErrorCode::InvalidAmount);
+    require!(target_price > 0, ErrorCode::InvalidAmount);
 
     transfer_asset(
         &ctx.accounts.maker_account,
         &ctx.accounts.vault.to_account_info(),
-        amount,
+        escrow_amount,
         None,
         &ctx.accounts.system_program,
     )
@@ -70,8 +77,10 @@ pub fn initialize_vault(ctx: Context<MakeNewOffer>, amount: u64, id: u64) -> Res
         .set_inner(OfferMetadata {
             id,
             maker: *ctx.accounts.maker_account.key,
-            amount,
+            escrow_amount,
             bump: ctx.bumps.offer_metadata_data_account,
+            target_price,
+            destination_account,
         });
 
     Ok(())

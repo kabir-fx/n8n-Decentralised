@@ -62,11 +62,11 @@ pub fn refund_offer(ctx: Context<RefundOffer>) -> Result<()> {
     transfer_asset(
         &ctx.accounts.vault.to_account_info(),
         &ctx.accounts.maker_account,
-        ctx.accounts.offer_metadata_data_account.amount,
+        ctx.accounts.offer_metadata_data_account.escrow_amount,
         signer_seeds,
         &ctx.accounts.system_program,
     )
-    .map_err(|_| ErrorCode::FailedVaultWithdrawal)?;
+    .map_err(|_| ErrorCode::FailedRefundTransfer)?;
 
     Ok(())
 }
