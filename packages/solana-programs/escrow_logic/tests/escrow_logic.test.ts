@@ -7,143 +7,163 @@ import {
   getExplorerLink,
   getProgramDerivedAddress,
   getAddressEncoder,
+  address,
+  Signature,
 } from "gill";
 import { loadKeypairSignerFromFile } from "gill/node";
 import { getMakeOfferInstruction } from "../clients/js/src/generated/instructions/makeOffer.js";
 import { ESCROW_LOGIC_PROGRAM_ADDRESS } from "../clients/js/src/generated/programs/escrowLogic.js";
-import { describe, test, it } from "node:test";
+import { describe, test } from "node:test";
 import assert from "node:assert";
 import { getRefundExistingOfferInstruction } from "../clients/js/src/generated/instructions/refundExistingOffer.js";
+import { getAcceptAnOfferInstruction } from "../clients/js/src/generated/instructions/acceptAnOffer.js";
+
+// ══════════════════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════════════════
+const CLUSTER: SolanaClusterMoniker = "devnet";
+const TEST_ESCROW_AMOUNT = 10_000_000n; // 0.01 SOL in lamports
+const TEST_TARGET_PRICE = 200;
+const TEST_OFFER_ID = 0;
+const VERBOSE = "true";
 
 describe("Escrow logic", async () => {
+  // ══════════════════════════════════════════════════════
+  // SETUP
+  // ══════════════════════════════════════════════════════
+
   /**
-   * Load a keypair signer from the local filesystem
-   *
-   * This defaults to the file path used by the Solana CLI: `~/.config/solana/id.json`
+   * Load keypair signers from the local filesystem
    */
   const signer = await loadKeypairSignerFromFile();
+  const bob = address("2VSx7fBYQTegELEM5qch1QVvFSLtgUuJxCVV3J5hyQZz");
+  const platform = await loadKeypairSignerFromFile(
+    "~/.config/solana/platform.json"
+  );
+
+  if (VERBOSE) {
+    console.log("Signer:", signer.address);
+    console.log("Bob (destination):", bob);
+    console.log("Platform:", platform.address);
+  }
 
   /**
-   * Declare what Solana network cluster we want our code to interact with
-   */
-  const cluster: SolanaClusterMoniker = "devnet";
-
-  /**x
    * Create a client connection to the Solana blockchain
-   *
-   * Note: `urlOrMoniker` can be either a Solana network moniker or a full URL of a RPC provider
    */
   const { rpc, sendAndConfirmTransaction, simulateTransaction } =
     createSolanaClient({
-      urlOrMoniker: cluster,
+      urlOrMoniker: CLUSTER,
     });
 
   /**
-   * Encode a base58-encoded address to a byte array
+   * Derive PDAs using pre-defined seeds
    */
   const addressEncoder = getAddressEncoder();
 
-  /**
-   * Derive both PDAs using pre-defined seeds
-   */
   const [offerMetadataPda] = await getProgramDerivedAddress({
     programAddress: ESCROW_LOGIC_PROGRAM_ADDRESS,
     seeds: [Buffer.from("offer"), addressEncoder.encode(signer.address)],
   });
-  console.log("Offer PDA:", offerMetadataPda);
 
   const [vaultPda] = await getProgramDerivedAddress({
     programAddress: ESCROW_LOGIC_PROGRAM_ADDRESS,
     seeds: [Buffer.from("vault")],
   });
-  console.log("Vault PDA:", vaultPda);
 
-  test("should initialize a vault with the configured amount", async () => {
-    /**
-     * Create a MakeOffer instruction to store SOL on-chain
-     */
+  if (VERBOSE) {
+    console.log("Offer PDA:", offerMetadataPda);
+    console.log("Vault PDA:", vaultPda);
+  }
+
+  // ══════════════════════════════════════════════════════
+  // HELPER FUNCTIONS
+  // ══════════════════════════════════════════════════════
+
+  /**
+   * Simulates and signs a transaction, returning the signature and signed transaction.
+   */
+  async function simulateAndSignTransaction(
+    transaction: Parameters<typeof signTransactionMessageWithSigners>[0]
+  ) {
+    // Simulate the transaction
+    const simulation = await simulateTransaction(transaction);
+    if (VERBOSE) {
+      console.log("Transaction simulation:", simulation);
+    }
+
+    // Sign the transaction with the provided `signer`
+    const signedTransaction =
+      await signTransactionMessageWithSigners(transaction);
+      
+    // Get the transaction signature after it has been signed by the `feePayer`
+    const signature = getSignatureFromTransaction(signedTransaction);
+
+    return { signature, signedTransaction };
+  }
+
+  /**
+   * Logs the Solana Explorer link for a given transaction signature.
+   */
+  function logExplorerLink(signature: Signature) {
+    console.log(
+      "Explorer Link:",
+      getExplorerLink({
+        cluster: CLUSTER,
+        transaction: signature,
+      })
+    );
+  }
+
+  /**
+   * Creates and confirms a new offer on-chain.
+   */
+  async function createOffer(): Promise<Signature> {
     const makeOfferIx = getMakeOfferInstruction({
       makerAccount: signer,
       offerMetadataDataAccount: offerMetadataPda,
       vault: vaultPda,
-      requestedSolAmount: 10000000n,
-      id: 0,
+      amountToStore: TEST_ESCROW_AMOUNT,
+      targetPrice: TEST_TARGET_PRICE,
+      destinationAccount: bob,
+      id: TEST_OFFER_ID,
     });
 
-    /**
-     * Get the latest blockhash (aka transaction lifetime). This acts as a recent timestamp
-     * for the blockchain to key on when processing your transaction
-     *
-     * Only request this value just before you are going to use it your code
-     */
+    // Get the latest blockhash (aka transaction lifetime). This acts as a recent timestamp for the blockchain to key on when processing your transaction
     const { value: latestBlockhash } = await rpc.getLatestBlockhash().send();
-    console.log("latestBlockhash:", latestBlockhash);
 
-    /**
-     * Create a transaction to be sent to the blockchain
-     */
+    // Create a transaction to be sent to the blockchain
     const transaction = createTransaction({
-      version: "legacy", // or `0` if using address lookup tables
+      version: "legacy",
       feePayer: signer,
       instructions: [makeOfferIx],
       latestBlockhash,
-      // 12_000 ~ 17_000 CU utilized by Make Offer instruction + rough buffer
       computeUnitLimit: 25000,
-      // TODO!: computeUnitPrice,
     });
-    console.log("Transaction:");
-    console.log(transaction);
 
-    /**
-     * Simulate the transaction
-     */
-    const simulation = await simulateTransaction(transaction);
-    console.log("transaction simulation:");
-    console.log(simulation);
+    // Call the helper functions
+    const { signature, signedTransaction } =
+      await simulateAndSignTransaction(transaction);
+    logExplorerLink(signature);
 
-    /**
-     * Sign the transaction with the provided `signer`
-     */
-    const signedTransaction =
-      await signTransactionMessageWithSigners(transaction);
-    console.log("signedTransaction:");
-    console.log(signedTransaction);
+    // Actually send the transaction to the blockchain and confirm it
+    await sendAndConfirmTransaction(signedTransaction, {
+      commitment: "confirmed",
+      skipPreflight: true,
+      maxRetries: 10n,
+    });
 
-    /**
-     * Get the transaction signature after it has been signed by the `feePayer`
-     */
-    const signature = getSignatureFromTransaction(signedTransaction);
+    console.log("Offer created:", signature);
+    return signature;
+  }
 
-    /**
-     * Log the Solana Explorer link for the
-     */
-    console.log("Explorer Link:");
-    console.log(
-      getExplorerLink({
-        cluster,
-        transaction: signature,
-      })
-    );
+  // ══════════════════════════════════════════════════════
+  // TESTS
+  // ══════════════════════════════════════════════════════
 
-    try {
-      /**
-       * Actually send the transaction to the blockchain and confirm it
-       */
-      await sendAndConfirmTransaction(signedTransaction, {
-        commitment: "confirmed",
-        skipPreflight: true,
-        maxRetries: 10n,
-      });
+  test("should initialize a vault with the configured amount", async () => {
+    await createOffer();
 
-      console.log("Transaction confirmed!", signature);
-    } catch (err) {
-      console.error("Unable to send and confirm the transaction");
-      console.error(err);
-    }
-
-    /**
-     * Assert that the metadata has been created along with metadata
-     */
+    // Assert that the metadata has been created
     const offerMetadataAccount = await rpc
       .getAccountInfo(offerMetadataPda)
       .send();
@@ -153,101 +173,56 @@ describe("Escrow logic", async () => {
     );
     assert.equal(
       offerMetadataAccount.value?.owner,
-      ESCROW_LOGIC_PROGRAM_ADDRESS
+      ESCROW_LOGIC_PROGRAM_ADDRESS,
+      "Offer metadata should be owned by the escrow program"
     );
 
-    /**
-     * Assert that the vault has been created along with metadata
-     */
+    // Assert that the vault has been created
     const vaultAccount = await rpc.getAccountInfo(vaultPda).send();
     assert.ok(
       vaultAccount.value,
       "Vault account should exist after transaction"
     );
-    assert.equal(vaultAccount.value?.owner, ESCROW_LOGIC_PROGRAM_ADDRESS);
+    assert.equal(
+      vaultAccount.value?.owner,
+      ESCROW_LOGIC_PROGRAM_ADDRESS,
+      "Vault should be owned by the escrow program"
+    );
   });
 
-  test("should refund the offer and close accounts", async () => {
-    /**
-     * Create a RefundOffer instruction
-     */
-    const refundOfferIx = getRefundExistingOfferInstruction({
-      makerAccount: signer,
+  // Note: This test assumes an offer already exists from the previous test
+  test("should accept the offer and close accounts", async () => {
+    const acceptOfferIx = getAcceptAnOfferInstruction({
+      maker: signer.address,
+      platformAccount: platform,
+      destination: bob,
       offerMetadataDataAccount: offerMetadataPda,
       vault: vaultPda,
     });
 
-    /**
-     * Get the latest blockhash (aka transaction lifetime).
-     */
     const { value: latestBlockhash } = await rpc.getLatestBlockhash().send();
-    console.log("latestBlockhash:", latestBlockhash);
 
-    /**
-     * Create a transaction to be sent to the blockchain
-     */
     const transaction = createTransaction({
-      version: "legacy", // or `0` if using address lookup tables
-      feePayer: signer,
-      instructions: [refundOfferIx],
+      version: "legacy",
+      feePayer: platform,
+      instructions: [acceptOfferIx],
       latestBlockhash,
-      // 5_000 ~ 9_000 CU utilized by Make Offer instruction + rough buffer
-      computeUnitLimit: 15000,
-      // TODO!: computeUnitPrice,
+      computeUnitLimit: 25000,
     });
-    console.log("Transaction:");
-    console.log(transaction);
 
-    /**
-     * Simulate the transaction
-     */
-    const simulation = await simulateTransaction(transaction);
-    console.log("transaction simulation:");
-    console.log(simulation);
+    const { signature, signedTransaction } =
+      await simulateAndSignTransaction(transaction);
+    logExplorerLink(signature);
 
-    /**
-     * Sign the transaction with the provided `signer`
-     */
-    const signedTransaction =
-      await signTransactionMessageWithSigners(transaction);
-    console.log("signedTransaction:");
-    console.log(signedTransaction);
+    await sendAndConfirmTransaction(signedTransaction, {
+      commitment: "confirmed",
+      skipPreflight: true,
+      maxRetries: 10n,
+    });
 
-    /**
-     * Get the transaction signature after it has been signed by the `feePayer`
-     */
-    const signature = getSignatureFromTransaction(signedTransaction);
+    console.log("Offer accepted:", signature);
 
-    /**
-     * Log the Solana Explorer link for the
-     */
-    console.log("Explorer Link:");
-    console.log(
-      getExplorerLink({
-        cluster,
-        transaction: signature,
-      })
-    );
-
-    try {
-      /**
-       * Actually send the transaction to the blockchain and confirm it
-       */
-      await sendAndConfirmTransaction(signedTransaction, {
-        commitment: "confirmed",
-        skipPreflight: true,
-        maxRetries: 10n,
-      });
-
-      console.log("Transaction confirmed!", signature);
-    } catch (err) {
-      console.error("Unable to send and confirm the transaction");
-      console.error(err);
-    }
-
-    /**
-     * Assert that the metadata account does not exist
-     */
+    // Assert that the metadata account has been closed
     const offerMetadataAccount = await rpc
       .getAccountInfo(offerMetadataPda)
       .send();
@@ -256,9 +231,56 @@ describe("Escrow logic", async () => {
       "Offer metadata account should not exist after transaction"
     );
 
-    /**
-     * Assert that the vault has been closed
-     */
+    // Assert that the vault has been closed
+    const vaultAccount = await rpc.getAccountInfo(vaultPda).send();
+    assert.ok(
+      !vaultAccount.value,
+      "Vault account should not exist after transaction"
+    );
+  });
+
+  test("should refund the offer and close accounts", async () => {
+    // Setup: Create a new offer first
+    await createOffer();
+
+    const refundOfferIx = getRefundExistingOfferInstruction({
+      makerAccount: signer,
+      offerMetadataDataAccount: offerMetadataPda,
+      vault: vaultPda,
+    });
+
+    const { value: latestBlockhash } = await rpc.getLatestBlockhash().send();
+
+    const transaction = createTransaction({
+      version: "legacy",
+      feePayer: signer,
+      instructions: [refundOfferIx],
+      latestBlockhash,
+      computeUnitLimit: 15000,
+    });
+
+    const { signature, signedTransaction } =
+      await simulateAndSignTransaction(transaction);
+    logExplorerLink(signature);
+
+    await sendAndConfirmTransaction(signedTransaction, {
+      commitment: "confirmed",
+      skipPreflight: true,
+      maxRetries: 10n,
+    });
+
+    console.log("Offer refunded:", signature);
+
+    // Assert that the metadata account has been closed
+    const offerMetadataAccount = await rpc
+      .getAccountInfo(offerMetadataPda)
+      .send();
+    assert.ok(
+      !offerMetadataAccount.value,
+      "Offer metadata account should not exist after transaction"
+    );
+
+    // Assert that the vault has been closed
     const vaultAccount = await rpc.getAccountInfo(vaultPda).send();
     assert.ok(
       !vaultAccount.value,
