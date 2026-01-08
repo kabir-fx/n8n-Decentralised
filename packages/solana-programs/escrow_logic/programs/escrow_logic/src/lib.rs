@@ -4,6 +4,7 @@ mod state;
 
 use anchor_lang::prelude::*;
 
+use crate::handlers::accept_offer::*;
 use crate::handlers::create_offer::*;
 use crate::handlers::refund_offer::*;
 
@@ -25,5 +26,9 @@ pub mod escrow_logic {
 
     pub fn refund_existing_offer(ctx: Context<RefundOffer>) -> Result<()> {
         refund_offer(ctx)
+    }
+
+    pub fn accept_an_offer(ctx: Context<TakeOffer>) -> Result<()> {
+        take_offer(ctx)
     }
 }
