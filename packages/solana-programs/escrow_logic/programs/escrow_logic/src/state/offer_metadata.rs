@@ -17,10 +17,15 @@ pub struct OfferMetadata {
     pub maker: Pubkey,
 
     // TODO! - store the metadata about the cryptocurrency/asset being stored in the vault [SOL, ETH, BTC]
-    
     /// The amount of asset being locked.
-    pub amount: u64,
+    pub escrow_amount: u64,
 
     /// The bump seed used in PDA derivation.
     pub bump: u8,
+
+    /// The target price being monitored for an asset
+    pub target_price: u64,
+
+    /// The destination account to transfer the escrowed asset
+    pub destination_account: Pubkey,
 }
