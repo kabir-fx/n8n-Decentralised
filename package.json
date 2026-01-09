@@ -19,7 +19,8 @@
   "packageManager": "yarn@1.22.22",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "packages/solana-programs/*"
   ],
   "dependencies": {
     "@types/mongoose": "^5.11.96",
