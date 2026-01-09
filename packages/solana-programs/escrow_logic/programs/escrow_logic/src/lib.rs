@@ -8,7 +8,7 @@ use crate::handlers::accept_offer::*;
 use crate::handlers::create_offer::*;
 use crate::handlers::refund_offer::*;
 
-declare_id!("3qxEyNRMxg4JNRhu8o8DymaBeHJf2QvQgiE52tLnJs4u");
+declare_id!("DcJiYSM6srr1xvwZVjYd85ZcSu2CDXzK6tXpGJWSJEfT");
 
 #[program]
 pub mod escrow_logic {
