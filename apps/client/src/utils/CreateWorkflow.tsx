@@ -2,13 +2,15 @@ import { useState, useCallback } from 'react';
 import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge, ReactFlowProvider, useReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { TriggerSheet } from './TriggerSheet';
+import { AssetTransferSheet } from './AssetTransferSheet';
 import { PriceTrigger } from '@/nodes/triggers/PriceTrigger';
 import { Timer } from '@/nodes/triggers/Timer';
-import { ActionSheet } from './ActionSheet';
+import { ExchangeSheet } from './ExchangeSheet';
 import { Lighter } from '@/nodes/actions/Lighter';
 import { Hyperliquid } from '@/nodes/actions/Hyperliquid';
 import { Backpack } from '@/nodes/actions/Backpack';
 import type { EdgeType, NodeType } from 'common/types';
+import { TransferAsset } from '@/nodes/actions/TransferAsset';
 
 // Component that will handle all the workflow creation process
 function Flow() {
@@ -73,7 +75,8 @@ function Flow() {
         "timer": Timer,
         "lighter": Lighter,
         "backpack": Backpack,
-        "hyperliquid": Hyperliquid
+        "hyperliquid": Hyperliquid,
+        "asset-transfer": TransferAsset
     };
 
     return (
@@ -96,7 +99,7 @@ function Flow() {
             }} />}
 
             {/* If the state of selectionAction is not null it triggers a sheet to appear on RHS to select the type of action as the second node */}
-            {selectAction && <ActionSheet onSelectHandler={(type, metadata) => {
+            {selectAction && <AssetTransferSheet onSelectHandler={(type, metadata) => {
                 const id = Math.random().toString();
 
                 // Adds the action node to the canvas

@@ -120,7 +120,7 @@ export const TriggerSheet = ({
             <SheetFooter>
                 <Button onClick={() => {
                     onSelectHandler(
-                        selectedTrigger,
+                        selectedTrigger as NodeKind,
                         metadata
                     )
                 }} > Submit </Button>

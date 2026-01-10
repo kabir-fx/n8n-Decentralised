@@ -1,5 +1,5 @@
 // List of supported triggers currently available for use
-export const SUPPORTED_ACTIONS = [
+export const SUPPORTED_EXCHANGE = [
     {
         id: "hyperliquid",
         title: "Hyperliquid",
@@ -31,6 +31,31 @@ export const SUPPORTED_TRIGGERS = [
     }
 ]
 
+export const SUPPORTED_NODES = [
+    {
+        id: "asset-transfer",
+        title: "Asset Transfer",
+        description: "Use this node to transfer an asset to a different account"
+    },
+    {
+        id: "exchange-trade",
+        title: "Place trade on exchange",
+        description: "Use this node to place trade on an exchange"
+    }
+]
+
+export const SUPPORTED_COMMUNICATION_CHANNELS = [
+    {
+        id: "discord",
+        title: "Discord",
+        description: "Communicate on Discord"
+    },
+    {
+        id: "slack",
+        title: "Slack",
+        description: "Communicate on Slack"
+    },
+]
 
 // List of supported assets currently available for use
-export const SUPPORTED_ASSETS = ["SOL", "BTC", "ETH"]
+export const SUPPORTED_ASSETS = ["SOL"]

@@ -20,10 +20,10 @@ import type { NodeKind, NodeMetadata } from "common/types";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SUPPORTED_ACTIONS, SUPPORTED_ASSETS, type ActionNodeMetadata } from "common/types";
+import { SUPPORTED_EXCHANGE, SUPPORTED_ASSETS, type ActionNodeMetadata } from "common/types";
 
 // Component to render a sheet on the RHS of the webpage
-export const ActionSheet = ({
+export const ExchangeSheet = ({
     onSelectHandler
 }: {
     onSelectHandler: (
@@ -35,13 +35,13 @@ export const ActionSheet = ({
     const [metadata, setMetadata] = useState<ActionNodeMetadata | {}>({});
 
     // State variable to handle the state of the selected action
-    const [selectedAction, setSelectedAction] = useState(SUPPORTED_ACTIONS[0].id);
+    const [selectedAction, setSelectedAction] = useState(SUPPORTED_EXCHANGE[0].id);
 
     return <Sheet open={true}>
         <SheetContent>
             <SheetHeader>
                 <SheetTitle>Select your action</SheetTitle>
-                <SheetDescription>
+                <SheetDescription>  
                     <Select
                         value={selectedAction}
                         onValueChange={(value) => setSelectedAction(value)}>
@@ -51,7 +51,7 @@ export const ActionSheet = ({
                         <SelectContent>
                             <SelectGroup>
                                 {/* Maps thru the list of all the supported actions to display to the user */}
-                                {SUPPORTED_ACTIONS.map(({ id, title, description }) => <>
+                                {SUPPORTED_EXCHANGE.map(({ id, title, description }) => <>
                                     <SelectItem value={id}> {title} </SelectItem>
                                     <SelectLabel>{description}</SelectLabel>
                                 </>)}
