@@ -3,7 +3,6 @@ import {
   SelectContent,
   SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -29,21 +28,20 @@ import { SUPPORTED_ASSETS } from "common/types";
 // Component to render a sheet on the RHS of the webpage
 export const AssetTransferSheet = ({
   onSelectHandler,
+  onClose,
 }: {
   onSelectHandler: (kind: NodeKind, metadata: NodeMetadata) => void;
+  onClose: () => void;
 }) => {
   // State variables to handle the state of metadata of the node
   const [metadata, setMetadata] = useState<AssetTransferMetadata>({
     asset: "SOL",
     amount_to_transfer: 1,
-    receiver_address: "xyz"
+    receiver_address: "xyz",
   });
-//   const [selectedAction, setSelectedAction] = useState(
-//     SUPPORTED_TRIGGERS[0].id
-//   );
 
   return (
-    <Sheet open={true}>
+    <Sheet open={true} onOpenChange={(open) => !open && onClose()}>
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Transfer Asset to another Account</SheetTitle>
@@ -120,8 +118,7 @@ export const AssetTransferSheet = ({
               onSelectHandler("asset-transfer", metadata);
             }}
           >
-            {" "}
-            Submit{" "}
+            Submit
           </Button>
         </SheetFooter>
       </SheetContent>
