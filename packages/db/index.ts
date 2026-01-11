@@ -1,5 +1,8 @@
 import mongoose, { Schema } from "mongoose"
 
+// ============================================
+// USER SCHEMA
+// ============================================
 const userSchema = new Schema({
     username: {
         type: String,
@@ -9,10 +12,20 @@ const userSchema = new Schema({
     password: {
         type: String,
         required: true
+    },
+    walletAddress: {
+        type: String,
+        required: true,
+        unique: true
     }
+}, {
+    timestamps: true
 });
 export const UserModel = mongoose.model("User", userSchema);
 
+// ============================================
+// EDGES SCHEMA
+// ============================================
 const edgesSchema = new Schema({
     edgeId: {
         type: String,
@@ -30,6 +43,9 @@ const edgesSchema = new Schema({
     _id: false
 })
 
+// ============================================
+// NODE PROPERTIES SCHEMA
+// ============================================
 const nodePropertiesSchema = new Schema({
     nodeId: {
         type: String,
@@ -56,28 +72,32 @@ const nodePropertiesSchema = new Schema({
     _id: false
 });
 
+// ============================================
+// WORKFLOW SCHEMA
+// ============================================
 const workflowSchema = new Schema({
     userId: {
         type: mongoose.Types.ObjectId,
         ref: 'User',
         required: true
     },
+    name: {
+        type: String,
+        required: true,
+    },
+    isActive: {
+        type: Boolean,
+    },
     edges: [edgesSchema],
     nodeProperties: [nodePropertiesSchema]
+}, {
+    timestamps: true
 })
 export const WorkflowModel = mongoose.model("Workflow", workflowSchema);
 
-const CredentialsSchema = new Schema({
-    title: {
-        type: String,
-        required: true
-    },
-    required: {
-        type: Boolean,
-        required: true
-    }
-})
-
+// ============================================
+// NODE PROPERTIES SCHEMA
+// ============================================
 const nodeSchema = new Schema({
     title: {
         type: String,
@@ -91,11 +111,13 @@ const nodeSchema = new Schema({
         type: String,
         enum: ["ACTION", "TRIGGER"],
         required: true
-    },
-    credentialsType: [CredentialsSchema]
+    }
 })
 export const NodeModel = mongoose.model("Node", nodeSchema);
 
+// ============================================
+// EXECUTION SCHEMA
+// ============================================
 const executionSchema = new Schema({
     workflowId: {
         type: mongoose.Types.ObjectId,
@@ -104,14 +126,40 @@ const executionSchema = new Schema({
     },
     status: {
         type: String,
-        enum: ["PENDING", "FINISHED"],
+        enum: ["PENDING", "FINISHED", "CANCELLED", "FAILED"],
         required: true
     },
-    startTime: {
+    depositTxSignature: {
+        type: String,
+        required: true
+    },
+    executionTxSignature: String,
+    escrow_pda: {
+        type: String,
+        required: true
+    },
+    vault_pda: {
+        type: String,
+        required: true
+    },
+    maker_pubkey: {
+        type: String,
+        required: true
+    },
+    destination_pubkey: {
+        type: String,
+        required: true
+    },
+    amount_lamports: {
+        type: Number,
+        required: true
+    },
+    createdAt: {
         type: Date,
         default: Date.now,
         required: true
     },
+    StartTime: Date,
     endTime: Date
 })
 export const ExecutionModel = mongoose.model("Execution", executionSchema);
