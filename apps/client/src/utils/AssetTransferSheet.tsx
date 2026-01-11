@@ -37,7 +37,7 @@ export const AssetTransferSheet = ({
   const [metadata, setMetadata] = useState<AssetTransferMetadata>({
     asset: "SOL",
     amount_to_transfer: 1,
-    receiver_address: "xyz",
+    receiver_address: "2VSx7fBYQTegELEM5qch1QVvFSLtgUuJxCVV3J5hyQZz",
   });
 
   return (
