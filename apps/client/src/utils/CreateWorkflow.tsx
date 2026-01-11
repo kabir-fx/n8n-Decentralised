@@ -8,6 +8,7 @@ import {
   useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { TriggerSheet } from "./TriggerSheet";
 import { ActionSelectorSheet } from "./ActionSelectorSheet";
 import { PriceTrigger } from "@/nodes/triggers/PriceTrigger";
@@ -89,7 +90,12 @@ function Flow() {
   };
 
   return (
-    <div style={{ width: "100vw", height: "100vh" }}>
+    <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
+      {/* Wallet connect button in top-right corner */}
+      <div style={{ position: "absolute", top: 16, right: 16, zIndex: 10 }}>
+        <WalletMultiButton />
+      </div>
+
       {/* If there are no nodes present on the canvas it triggers a sheet to appear on RHS to select the type of trigger as the first node */}
       {!nodes.length && (
         <TriggerSheet
