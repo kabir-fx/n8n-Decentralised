@@ -98,22 +98,26 @@ app.post("/signin", async (req, res) => {
 function auth(req, res, next) {
   const token = req.headers.token;
 
-  const jwt_verified_response = jwt.verify(token, config.JWT_SECRET);
+  if (!token || typeof token !== "string") {
+    return res.status(401).json({ message: "No token provided" });
+  }
 
-  if (jwt_verified_response) {
-    req.userID = jwt_verified_response.userID;
-
+  try {
+    const decoded = jwt.verify(token, config.JWT_SECRET);
+    req.userID = decoded.userID;
     next();
-  } else {
-    res.status(403).json({
-      message: "invalid token",
-    });
+  } catch (error) {
+    return res.status(403).json({ message: "Invalid token" });
   }
 }
 
-app.get("/canvas", (req, res) => {});
+app.get("/canvas", auth, async (req, res) => {
+  return res.json({
+    msg: "Helooo",
+  });
+});
 
-app.post("/canvas", (req, res) => {});
+app.post("/canvas", auth, async (req, res) => {});
 
 app.put("/canvas", (req, res) => {});
 
