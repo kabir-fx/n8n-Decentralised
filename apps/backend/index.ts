@@ -1,7 +1,8 @@
 import bcrypt from "bcryptjs";
+import cors from "cors";
 import { signupSchema } from "common/types";
 import { config } from "./config.js";
-import { UserModel } from "db";
+import { UserModel, WorkflowModel } from "db";
 import express from "express";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
@@ -12,6 +13,15 @@ mongoose.connect(config.MONGO_URL).then(() => {
 });
 
 const app = express();
+
+// Enable CORS for frontend dev server
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 app.get("/health", (req, res) => {
@@ -95,8 +105,12 @@ app.post("/signin", async (req, res) => {
   }
 });
 
-function auth(req, res, next) {
-  const token = req.headers.token;
+function authMiddleware(req, res, next) {
+  const authHeader = req.headers.authorization;
+  const token =
+    authHeader && authHeader.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : authHeader;
 
   if (!token || typeof token !== "string") {
     return res.status(401).json({ message: "No token provided" });
@@ -107,7 +121,7 @@ function auth(req, res, next) {
     req.userID = decoded.userID;
     next();
   } catch (error) {
-    return res.status(403).json({ message: "Invalid token" });
+    return res.status(401).json({ message: "Invalid token" });
   }
 }
 
