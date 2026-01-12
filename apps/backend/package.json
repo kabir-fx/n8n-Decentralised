@@ -5,11 +5,11 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun --watch index.ts",
-    "start": "bun index.ts"
+    "dev": "node --env-file=.env --import tsx --watch index.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "tsx": "^4.21.0"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -17,9 +17,10 @@
   "dependencies": {
     "@types/express": "^5.0.5",
     "@types/jsonwebtoken": "^9.0.10",
-    "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^3.0.3",
     "common": "*",
-    "db": "*"
+    "db": "*",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2"
   }
 }
