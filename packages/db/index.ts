@@ -55,13 +55,12 @@ const edgesSchema = new Schema(
 // ============================================
 const nodePropertiesSchema = new Schema(
   {
-    nodeId: {
+    nodeID: {
       type: String,
       required: true,
     },
-    node: {
-      type: mongoose.Types.ObjectId,
-      ref: "Node",
+    nodeType: {
+      type: String,
       required: true,
     },
     metadata: Schema.Types.Mixed,
@@ -75,7 +74,6 @@ const nodePropertiesSchema = new Schema(
         required: true,
       },
     },
-    credentials: Schema.Types.Mixed,
   },
   {
     _id: false,
@@ -107,26 +105,6 @@ const workflowSchema = new Schema(
   }
 );
 export const WorkflowModel = mongoose.model("Workflow", workflowSchema);
-
-// ============================================
-// NODE PROPERTIES SCHEMA
-// ============================================
-const nodeSchema = new Schema({
-  title: {
-    type: String,
-    required: true,
-  },
-  description: {
-    type: String,
-    required: true,
-  },
-  type: {
-    type: String,
-    enum: ["ACTION", "TRIGGER"],
-    required: true,
-  },
-});
-export const NodeModel = mongoose.model("Node", nodeSchema);
 
 // ============================================
 // EXECUTION SCHEMA
