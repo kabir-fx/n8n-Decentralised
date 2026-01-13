@@ -18,6 +18,7 @@ import { Hyperliquid } from "@/nodes/actions/Hyperliquid";
 import { Backpack } from "@/nodes/actions/Backpack";
 import type { EdgeType, NodeType } from "common/types";
 import { TransferAsset } from "@/nodes/actions/TransferAsset";
+import { Button } from "@/components/ui/button";
 
 // Component that will handle all the workflow creation process
 function Flow() {
@@ -131,10 +132,30 @@ function Flow() {
   return (
     <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
       {/* Wallet connect button in top-right corner */}
-      <div style={{ position: "absolute", top: 16, right: 16, zIndex: 10 }}>
-        <button onClick={() => saveWorkflow(nodes, edges)}>
+      <div
+        style={{
+          position: "absolute",
+          top: 16,
+          right: 16,
+          zIndex: 10,
+          display: "flex",
+          gap: "8px",
+          alignItems: "center",
+        }}
+      >
+        <Button
+          variant="secondary"
+          onClick={() => saveWorkflow(nodes, edges)}
+          style={{
+            height: "48px",
+            backgroundColor: "white",
+            color: "#1a1a1a",
+            borderRadius: "4px",
+            fontWeight: 900,
+          }}
+        >
           Submit Workflow
-        </button>
+        </Button>
         <WalletMultiButton />
       </div>
 
