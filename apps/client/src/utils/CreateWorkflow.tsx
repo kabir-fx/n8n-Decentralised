@@ -89,10 +89,52 @@ function Flow() {
     "asset-transfer": TransferAsset,
   };
 
+  async function saveWorkflow(nodes: NodeType[], edges: EdgeType[]) {
+    const payload = {
+      name: "Dummy Workflow",
+
+      nodeProperties: nodes.map((node) => ({
+        nodeID: node.id,
+        nodeType: node.type,
+        metadata: node.data.metadata,
+        position: node.position,
+      })),
+
+      edges: edges.map((edge) => ({
+        edgeId: edge.id,
+        source: edge.source,
+        target: edge.target,
+      })),
+    };
+
+    console.log("Posting - " + payload);
+
+    // TODO!
+    // const token = localStorage.getItem("token");
+    const token =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySUQiOiI2OTY1Mzc2NTk5NGUwMmNlOTI4ZjJhMmMiLCJpYXQiOjE3NjgyNDEwMjZ9.v0eeUKVQw1UQycBcIbnar_He7OczaBrso7tgICn_Wxs";
+
+    const response = await fetch("http://localhost:2099/workflow", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error("Failed to save");
+
+    const result = await response.json();
+    alert(`Workflow saved! ID: ${result.workflowId}`);
+  }
+
   return (
     <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
       {/* Wallet connect button in top-right corner */}
       <div style={{ position: "absolute", top: 16, right: 16, zIndex: 10 }}>
+        <button onClick={() => saveWorkflow(nodes, edges)}>
+          Submit Workflow
+        </button>
         <WalletMultiButton />
       </div>
 

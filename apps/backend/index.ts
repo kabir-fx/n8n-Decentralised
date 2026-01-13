@@ -125,13 +125,46 @@ function authMiddleware(req, res, next) {
   }
 }
 
-app.get("/canvas", auth, async (req, res) => {
+app.get("/canvas", authMiddleware, async (req, res) => {
+  // @ts-ignore
+  const userId = req.userID;
+
+  const getWorkflow = await WorkflowModel.findOne({
+    userId,
+  });
+
   return res.json({
-    msg: "Helooo",
+    workflow: getWorkflow,
   });
 });
 
-app.post("/canvas", auth, async (req, res) => {});
+app.post("/workflow", authMiddleware, async (req, res) => {
+  const { name, nodeProperties, edges } = req.body;
+
+  if (!nodeProperties || !edges) {
+    return res.status(400).json({
+      msg: "Missing fields",
+    });
+  }
+
+  try {
+    const workflow = await WorkflowModel.create({
+      userId: req.userID,
+      name,
+      nodeProperties,
+      edges,
+      isActive: false,
+    });
+
+    res.status(201).json({
+      msg: "Workflow created",
+      workflowId: workflow._id,
+    });
+  } catch (error) {
+    console.error("Workflow creation error:", error);
+    res.status(500).json({ msg: "Failed to create workflow" });
+  }
+});
 
 app.put("/canvas", (req, res) => {});
 
