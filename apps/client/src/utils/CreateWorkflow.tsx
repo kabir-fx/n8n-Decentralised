@@ -240,7 +240,7 @@ function Flow() {
 
   return (
     <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
-      {/* Wallet connect button in top-right corner */}
+      {/* Sidebar menu */}
       <div
         style={{
           position: "absolute",
@@ -266,45 +266,6 @@ function Flow() {
         onSelectWorkflow={loadWorkflow}
         isLoading={loadingWorkflows}
       />
-
-      <div
-        style={{
-          position: "absolute",
-          top: 16,
-          right: 16,
-          zIndex: 10,
-          display: "flex",
-          gap: "8px",
-          alignItems: "center",
-        }}
-      >
-        <Button
-          variant="secondary"
-          onClick={() => saveWorkflow(nodes, edges)}
-          style={{
-            height: "48px",
-            backgroundColor: "white",
-            color: "#1a1a1a",
-            borderRadius: "4px",
-            fontWeight: 900,
-          }}
-        >
-          Submit Workflow
-        </Button>
-        <WalletMultiButton />
-        <Button
-          onClick={logoutAndRedirect}
-          style={{
-            height: "48px",
-            backgroundColor: "#ef4444",
-            color: "white",
-            borderRadius: "4px",
-            fontWeight: 900,
-          }}
-        >
-          Sign Out
-        </Button>
-      </div>
 
       {/* If there are no nodes present on the canvas it triggers a sheet to appear on RHS to select the type of trigger as the first node */}
       {!nodes.length && (
@@ -364,6 +325,47 @@ function Flow() {
           }}
           onClose={() => setSelectAction(null)}
         />
+      )}
+
+      {nodes.length > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            top: 16,
+            right: 16,
+            zIndex: 10,
+            display: "flex",
+            gap: "8px",
+            alignItems: "center",
+          }}
+        >
+          <Button
+            variant="secondary"
+            onClick={() => saveWorkflow(nodes, edges)}
+            style={{
+              height: "48px",
+              backgroundColor: "white",
+              color: "#1a1a1a",
+              borderRadius: "4px",
+              fontWeight: 900,
+            }}
+          >
+            Submit Workflow
+          </Button>
+          <WalletMultiButton />
+          <Button
+            onClick={logoutAndRedirect}
+            style={{
+              height: "48px",
+              backgroundColor: "#ef4444",
+              color: "white",
+              borderRadius: "4px",
+              fontWeight: 900,
+            }}
+          >
+            Sign Out
+          </Button>
+        </div>
       )}
 
       {/* The ReactFlow component that renders the canvas */}
