@@ -261,7 +261,6 @@ function Flow() {
         isLoading={loadingWorkflows}
       />
 
-      {/* Wallet connect button in top-right corner */}
       <div
         style={{
           position: "absolute",
@@ -286,6 +285,7 @@ function Flow() {
         >
           Submit Workflow
         </Button>
+        <WalletMultiButton />
         <Button
           onClick={logoutAndRedirect}
           style={{
@@ -298,7 +298,6 @@ function Flow() {
         >
           Sign Out
         </Button>
-        <WalletMultiButton />
       </div>
 
       {/* If there are no nodes present on the canvas it triggers a sheet to appear on RHS to select the type of trigger as the first node */}
