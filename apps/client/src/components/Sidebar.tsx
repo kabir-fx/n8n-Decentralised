@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 export interface Workflow {
   _id: string;
   name: string;
-  createdAt?: string;
+  updatedAt?: string;
   isActive: boolean;
 }
 
@@ -59,6 +59,18 @@ export function Sidebar({
             </div>
           ) : (
             <div className="flex flex-col gap-3 pb-6">
+              <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2 border border-dashed border-border rounded-lg m-1">
+                <Button
+                  variant="link"
+                  onClick={() => {
+                    onSelectWorkflow("-1");
+                    setIsOpen(false);
+                  }}
+                >
+                  Create new
+                </Button>
+              </div>
+
               {workflows?.map((workflow) => (
                 <Button
                   key={workflow._id}
@@ -85,8 +97,11 @@ export function Sidebar({
                       <span className="font-mono opacity-70">
                         ID: {workflow._id.slice(-6)}
                       </span>
-                      {/* We could add date here if backend returns it */}
                     </div>
+                    <span className="font-mono opacity-70">
+                      Updated at: {workflow.updatedAt?.slice(0, 10)}{" "}
+                      {workflow.updatedAt?.slice(11, 16)}
+                    </span>
                   </div>
                 </Button>
               ))}

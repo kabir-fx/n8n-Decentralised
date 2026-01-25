@@ -80,6 +80,12 @@ function Flow() {
   }, [fetchWorkflows]);
 
   const loadWorkflow = async (id: string) => {
+    if (id === "-1") {
+      setNodes([]);
+      setEdges([]);
+      return;
+    }
+
     if (!token) return;
     try {
       const res = await fetch(`http://localhost:2099/workflow/${id}`, {
