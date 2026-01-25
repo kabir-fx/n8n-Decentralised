@@ -23,7 +23,7 @@ import { Backpack } from "@/nodes/actions/Backpack";
 import type { EdgeType, NodeType } from "common/types";
 import { TransferAsset } from "@/nodes/actions/TransferAsset";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthWithRedirect } from "@/hooks/useAuth";
 import { Sidebar, type Workflow } from "@/components/Sidebar";
 import { Menu } from "lucide-react";
 import { useEffect } from "react";
@@ -47,7 +47,7 @@ function Flow() {
     startingNodeId: string;
   } | null>(null);
 
-  const { token } = useAuth();
+  const { token, logoutAndRedirect } = useAuthWithRedirect();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [loadingWorkflows, setLoadingWorkflows] = useState(false);
@@ -285,6 +285,18 @@ function Flow() {
           }}
         >
           Submit Workflow
+        </Button>
+        <Button
+          onClick={logoutAndRedirect}
+          style={{
+            height: "48px",
+            backgroundColor: "#ef4444",
+            color: "white",
+            borderRadius: "4px",
+            fontWeight: 900,
+          }}
+        >
+          Sign Out
         </Button>
         <WalletMultiButton />
       </div>
