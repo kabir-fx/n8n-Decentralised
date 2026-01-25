@@ -19,7 +19,7 @@ app.use(
   cors({
     origin: "http://localhost:5173",
     credentials: true,
-  })
+  }),
 );
 
 app.use(express.json());
@@ -91,7 +91,7 @@ app.post("/signin", async (req, res) => {
         {
           userID: user._id.toString(),
         },
-        config.JWT_SECRET
+        config.JWT_SECRET,
       );
 
       res.json({
@@ -125,17 +125,63 @@ function authMiddleware(req, res, next) {
   }
 }
 
-app.get("/canvas", authMiddleware, async (req, res) => {
-  // @ts-ignore
+app.get("/workflow/:id", authMiddleware, async (req, res) => {
+  // Extract the ID from the URL
+  const { id } = req.params;
+
+  // Get the logged-in user's ID
   const userId = req.userID;
 
-  const getWorkflow = await WorkflowModel.findOne({
-    userId,
-  });
+  try {
+    // Find the workflow that matches BOTH the _id and the userId. This ensures that even if someone knows a valid workflow ID, they can't fetch it unless they are the owner.
+    const workflow = await WorkflowModel.findOne({
+      _id: id,
+      userId,
+    });
 
-  return res.json({
-    workflow: getWorkflow,
-  });
+    // If no workflow is found (or it doesn't belong to the user), return 404
+    if (!workflow) {
+      return res.status(404).json({
+        msg: "Workflow not found or unauthorized access",
+      });
+    }
+
+    return res.json({
+      workflow,
+    });
+  } catch (error) {
+    // Handle cases like invalid MongoDB ObjectIDs
+    return res.status(500).json({
+      msg: "Internal server error",
+    });
+  }
+});
+
+app.get("/workflow", authMiddleware, async (req, res) => {
+  const userId = req.userID;
+
+  try {
+    // Find ALL the workflows that matches the userId.
+    const workflow = await WorkflowModel.find({
+      userId,
+    });
+
+    // If no workflow is found (or it doesn't belong to the user), return 404
+    if (!workflow) {
+      return res.status(404).json({
+        msg: "Workflow not found or unauthorized access",
+      });
+    }
+
+    return res.json({
+      workflow,
+    });
+  } catch (error) {
+    // Handle cases like invalid MongoDB ObjectIDs
+    return res.status(500).json({
+      msg: "Internal server error",
+    });
+  }
 });
 
 app.post("/workflow", authMiddleware, async (req, res) => {
@@ -167,9 +213,6 @@ app.post("/workflow", authMiddleware, async (req, res) => {
 });
 
 app.put("/canvas", (req, res) => {});
-
-// Returns all the nodes present in the DB
-app.get("/nodes", (req, res) => {});
 
 app.listen(config.PORT, () => {
   console.log(`Backend running on port ${config.PORT}`);

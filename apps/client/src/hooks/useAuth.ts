@@ -51,7 +51,7 @@ export function useAuthWithRedirect() {
       auth.login(newToken);
       navigate(redirectTo);
     },
-    [auth, navigate]
+    [auth, navigate],
   );
 
   return {

@@ -6,6 +6,10 @@ import {
   addEdge,
   ReactFlowProvider,
   useReactFlow,
+  type NodeChange,
+  type EdgeChange,
+  type Connection,
+  type OnConnectEnd,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
@@ -19,6 +23,10 @@ import { Backpack } from "@/nodes/actions/Backpack";
 import type { EdgeType, NodeType } from "common/types";
 import { TransferAsset } from "@/nodes/actions/TransferAsset";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { Sidebar, type Workflow } from "@/components/Sidebar";
+import { Menu } from "lucide-react";
+import { useEffect } from "react";
 
 // Component that will handle all the workflow creation process
 function Flow() {
@@ -39,37 +47,131 @@ function Flow() {
     startingNodeId: string;
   } | null>(null);
 
+  const { token } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [loadingWorkflows, setLoadingWorkflows] = useState(false);
+
+  const fetchWorkflows = useCallback(async () => {
+    if (!token) return;
+    setLoadingWorkflows(true);
+
+    try {
+      const res = await fetch("http://localhost:2099/workflow", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setWorkflows(data.workflow);
+      }
+    } catch (e) {
+      console.error("Failed to fetch workflows", e);
+    } finally {
+      setLoadingWorkflows(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchWorkflows();
+  }, [fetchWorkflows]);
+
+  const loadWorkflow = async (id: string) => {
+    if (!token) return;
+    try {
+      const res = await fetch(`http://localhost:2099/workflow/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const wf = data.workflow;
+        if (!wf) return;
+
+        const loadedNodes: NodeType[] = wf.nodeProperties.map(
+          (np: {
+            nodeID: string;
+            nodeType: string;
+            metadata: unknown;
+            position: { x: number; y: number };
+          }) => {
+            let kind: "trigger" | "action" = "action";
+            if (np.nodeType === "price-trigger" || np.nodeType === "timer") {
+              kind = "trigger";
+            }
+            return {
+              id: np.nodeID,
+              type: np.nodeType,
+              data: {
+                kind,
+                metadata: np.metadata,
+              },
+              position: np.position,
+            };
+          },
+        );
+
+        const loadedEdges: EdgeType[] = wf.edges.map(
+          (e: { edgeId: string; source: string; target: string }) => ({
+            id: e.edgeId,
+            source: e.source,
+            target: e.target,
+          }),
+        );
+
+        setNodes(loadedNodes);
+        setEdges(loadedEdges);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   // Runs the following callback function on a node's change
   const onNodesChange = useCallback(
-    (changes: any) =>
-      setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot)),
-    []
+    (changes: NodeChange[]) =>
+      setNodes(
+        (nodesSnapshot) =>
+          applyNodeChanges(changes, nodesSnapshot) as NodeType[],
+      ),
+    [],
   );
 
   // Runs the following callback function on a edge's change
   const onEdgesChange = useCallback(
-    (changes: any) =>
+    (changes: EdgeChange[]) =>
       setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot)),
-    []
+    [],
   );
 
   // Runs the following callback function on connecting an edge to a node
   const onConnect = useCallback(
-    (params: any) =>
+    (params: Connection) =>
       setEdges((edgesSnapshot) => addEdge(params, edgesSnapshot)),
-    []
+    [],
   );
 
   // Runs the following callback function on connecting an edge to a node
-  const onConnectEnd = useCallback(
-    (event: any, connectionInfo: any) => {
+  const onConnectEnd: OnConnectEnd = useCallback(
+    (event, connectionInfo) => {
       // If the edge is connected is left open in the canvas it opens the action sheet
       if (!connectionInfo.isValid) {
         // Gets the position of the mouse cursor
-        const { clientX, clientY } = event;
+        const clientX =
+          "changedTouches" in event
+            ? event.changedTouches[0].clientX
+            : event.clientX;
+        const clientY =
+          "changedTouches" in event
+            ? event.changedTouches[0].clientY
+            : event.clientY;
 
         // Converts the position of the mouse cursor to the position of the node in the canvas
         const position = screenToFlowPosition({ x: clientX, y: clientY });
+
+        if (!connectionInfo.fromNode) return;
 
         setSelectAction({
           position,
@@ -77,16 +179,16 @@ function Flow() {
         });
       }
     },
-    [screenToFlowPosition]
+    [screenToFlowPosition],
   );
 
   // Variables to store node-types, being sent to Reactflow component
   const nodeTypes = {
     "price-trigger": PriceTrigger,
-    "timer": Timer,
-    "lighter": Lighter,
-    "backpack": Backpack,
-    "hyperliquid": Hyperliquid,
+    timer: Timer,
+    lighter: Lighter,
+    backpack: Backpack,
+    hyperliquid: Hyperliquid,
     "asset-transfer": TransferAsset,
   };
 
@@ -108,18 +210,18 @@ function Flow() {
       })),
     };
 
-    console.log("Posting - " + payload);
+    const cleanToken = token?.replace(/^['"]+|['"]+$/g, "");
 
-    // TODO!
-    // const token = localStorage.getItem("token");
-    const token =
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySUQiOiI2OTY1Mzc2NTk5NGUwMmNlOTI4ZjJhMmMiLCJpYXQiOjE3NjgyNDEwMjZ9.v0eeUKVQw1UQycBcIbnar_He7OczaBrso7tgICn_Wxs";
+    if (!cleanToken) {
+      alert("Please login first");
+      return;
+    }
 
     const response = await fetch("http://localhost:2099/workflow", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${cleanToken}`,
       },
       body: JSON.stringify(payload),
     });
@@ -127,10 +229,38 @@ function Flow() {
 
     const result = await response.json();
     alert(`Workflow saved! ID: ${result.workflowId}`);
+    fetchWorkflows(); // Refresh list
   }
 
   return (
     <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
+      {/* Wallet connect button in top-right corner */}
+      <div
+        style={{
+          position: "absolute",
+          top: 16,
+          left: 16,
+          zIndex: 10,
+        }}
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setSidebarOpen(true)}
+          className="bg-white/90 hover:bg-white text-black border border-gray-200"
+        >
+          <Menu className="h-6 w-6" />
+        </Button>
+      </div>
+
+      <Sidebar
+        isOpen={sidebarOpen}
+        setIsOpen={setSidebarOpen}
+        workflows={workflows}
+        onSelectWorkflow={loadWorkflow}
+        isLoading={loadingWorkflows}
+      />
+
       {/* Wallet connect button in top-right corner */}
       <div
         style={{
