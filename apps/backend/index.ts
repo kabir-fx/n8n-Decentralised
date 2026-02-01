@@ -194,6 +194,17 @@ app.post("/workflow", authMiddleware, async (req, res) => {
   }
 
   try {
+    const workflowNameExists = await WorkflowModel.findOne({
+      userId: req.userID,
+      name,
+    });
+
+    if (workflowNameExists) {
+      return res.status(400).json({
+        msg: "Workflow with the same name already exists",
+      });
+    }
+
     const workflow = await WorkflowModel.create({
       userId: req.userID,
       name,
@@ -212,7 +223,43 @@ app.post("/workflow", authMiddleware, async (req, res) => {
   }
 });
 
-app.put("/canvas", (req, res) => {});
+app.put("/workflow/:id", authMiddleware, async (req, res) => {
+  const { oldName, name, nodeProperties, edges } = req.body;
+
+  if (!nodeProperties || !edges) {
+    return res.status(400).json({
+      msg: "Missing fields",
+    });
+  }
+
+  try {
+    const workflow = await WorkflowModel.updateOne(
+      {
+        userId: req.userID,
+        _id: req.params.id,
+      },
+      {
+        name,
+        nodeProperties,
+        edges,
+        isActive: false,
+      },
+    );
+
+    if (workflow) {
+      res.status(201).json({
+        msg: "Workflow updated!",
+      });
+    } else {
+      return res.status(400).json({
+        msg: "Failed to updated",
+      });
+    }
+  } catch (error) {
+    console.error("Workflow creation error:", error);
+    res.status(500).json({ msg: "Failed to create workflow" });
+  }
+});
 
 app.listen(config.PORT, () => {
   console.log(`Backend running on port ${config.PORT}`);

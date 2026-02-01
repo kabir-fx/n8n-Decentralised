@@ -53,6 +53,7 @@ function Flow() {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [loadingWorkflows, setLoadingWorkflows] = useState(false);
   const [workflowName, setWorkflowName] = useState("Dummy Workflow");
+  const [workflowID, setworkflowID] = useState("");
 
   const fetchWorkflows = useCallback(async () => {
     if (!token) return;
@@ -86,6 +87,7 @@ function Flow() {
       setNodes([]);
       setEdges([]);
       setWorkflowName("Dummy Workflow");
+      setworkflowID("");
       return;
     }
 
@@ -99,6 +101,7 @@ function Flow() {
         const wf = data.workflow;
         if (!wf) return;
         setWorkflowName(wf.name);
+        setworkflowID(wf._id);
 
         const loadedNodes: NodeType[] = wf.nodeProperties.map(
           (np: {
@@ -239,6 +242,54 @@ function Flow() {
 
     const result = await response.json();
     alert(`Workflow saved! ID: ${result.workflowId}`);
+
+    setworkflowID(result.workflowId);
+
+    fetchWorkflows(); // Refresh list
+  }
+
+  async function updateWorkflow(nodes: NodeType[], edges: EdgeType[]) {
+    const payload = {
+      name: workflowName,
+
+      nodeProperties: nodes.map((node) => ({
+        nodeID: node.id,
+        nodeType: node.type,
+        metadata: node.data.metadata,
+        position: node.position,
+      })),
+
+      edges: edges.map((edge) => ({
+        edgeId: edge.id,
+        source: edge.source,
+        target: edge.target,
+      })),
+    };
+
+    const cleanToken = token?.replace(/^['"]+|['"]+$/g, "");
+
+    if (!cleanToken) {
+      alert("Please login first");
+      return;
+    }
+
+    const response = await fetch(
+      `http://localhost:2099/workflow/${workflowID}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${cleanToken}`,
+        },
+        body: JSON.stringify(payload),
+      },
+    );
+
+    if (!response.ok) throw new Error("Failed to save");
+
+    await response.json();
+    alert(`Workflow updated! ID: ${workflowID}`);
+
     fetchWorkflows(); // Refresh list
   }
 
@@ -352,7 +403,11 @@ function Flow() {
         >
           <Button
             variant="secondary"
-            onClick={() => saveWorkflow(nodes, edges)}
+            onClick={() =>
+              workflowID
+                ? updateWorkflow(nodes, edges)
+                : saveWorkflow(nodes, edges)
+            }
             style={{
               height: "48px",
               backgroundColor: "white",
@@ -361,7 +416,7 @@ function Flow() {
               fontWeight: 900,
             }}
           >
-            Submit Workflow
+            {workflowID ? "Update Workflow" : "Submit Workflow"}
           </Button>
           <WalletMultiButton />
           <Button
