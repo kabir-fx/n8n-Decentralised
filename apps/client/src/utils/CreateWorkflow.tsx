@@ -23,6 +23,7 @@ import { Backpack } from "@/nodes/actions/Backpack";
 import type { EdgeType, NodeType } from "common/types";
 import { TransferAsset } from "@/nodes/actions/TransferAsset";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAuthWithRedirect } from "@/hooks/useAuth";
 import { Sidebar, type Workflow } from "@/components/Sidebar";
 import { Menu } from "lucide-react";
@@ -51,6 +52,7 @@ function Flow() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [loadingWorkflows, setLoadingWorkflows] = useState(false);
+  const [workflowName, setWorkflowName] = useState("Dummy Workflow");
 
   const fetchWorkflows = useCallback(async () => {
     if (!token) return;
@@ -83,6 +85,7 @@ function Flow() {
     if (id === "-1") {
       setNodes([]);
       setEdges([]);
+      setWorkflowName("Dummy Workflow");
       return;
     }
 
@@ -95,6 +98,7 @@ function Flow() {
         const data = await res.json();
         const wf = data.workflow;
         if (!wf) return;
+        setWorkflowName(wf.name);
 
         const loadedNodes: NodeType[] = wf.nodeProperties.map(
           (np: {
@@ -200,7 +204,7 @@ function Flow() {
 
   async function saveWorkflow(nodes: NodeType[], edges: EdgeType[]) {
     const payload = {
-      name: "Dummy Workflow",
+      name: workflowName,
 
       nodeProperties: nodes.map((node) => ({
         nodeID: node.id,
@@ -247,6 +251,8 @@ function Flow() {
           top: 16,
           left: 16,
           zIndex: 10,
+          display: "flex",
+          gap: "8px",
         }}
       >
         <Button
@@ -257,6 +263,11 @@ function Flow() {
         >
           <Menu className="h-6 w-6" />
         </Button>
+        <Input
+          value={workflowName}
+          onChange={(e) => setWorkflowName(e.target.value)}
+          className="bg-white/90 hover:bg-white text-white border border-gray-200 w-64 font-medium"
+        />
       </div>
 
       <Sidebar
